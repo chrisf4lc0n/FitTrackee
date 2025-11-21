@@ -277,3 +277,115 @@ Before executing the command, it is recommended to back up of all data (database
      - if provided, it refreshes only workouts without geometry in database to add geometry and points. This option is provided to update workouts created before v1.x and will be removed in a future version when all workouts must have geometry.
    * - ``-v, --verbose``
      - Enable verbose output log (default: disabled)
+
+
+``ftcli workouts sink_setup``
+"""""""""""""""""""""""""""""
+.. versionadded:: 1.1.0
+
+Create the sink folder structure for automatic workout file import.
+
+This creates the necessary folders:
+
+- ``UPLOAD_FOLDER/sink/`` - Base folder for incoming workout files
+- ``UPLOAD_FOLDER/sink/processed/`` - Successfully imported files
+- ``UPLOAD_FOLDER/sink/error/`` - Failed files with error details
+
+
+``ftcli workouts sink_watch``
+"""""""""""""""""""""""""""""
+.. versionadded:: 1.1.0
+
+Watch the sink folder for new workout files and automatically import them.
+
+The sink folder structure is:
+
+- ``UPLOAD_FOLDER/sink/{username}/file.fit`` - uses default sport (cycling)
+- ``UPLOAD_FOLDER/sink/{username}/{sport_id}/file.fit`` - uses specific sport
+
+Processed files are moved to ``sink/processed/{username}/``.
+Failed files are moved to ``sink/error/{username}/`` with a ``.error`` file containing details.
+
+.. cssclass:: table-bordered
+.. list-table::
+   :widths: 25 50
+   :header-rows: 1
+
+   * - Options
+     - Description
+   * - ``--process-existing``
+     - Process existing files in the sink folder before starting the watcher.
+   * - ``-v, --verbose``
+     - Enable verbose output log (default: disabled)
+
+
+``ftcli workouts sink_process``
+"""""""""""""""""""""""""""""""
+.. versionadded:: 1.1.0
+
+Process existing files in the sink folder (one-time batch processing).
+
+This command processes all workout files currently in the sink folder and then exits.
+Use this for batch processing without running the continuous watcher.
+
+.. cssclass:: table-bordered
+.. list-table::
+   :widths: 25 50
+   :header-rows: 1
+
+   * - Options
+     - Description
+   * - ``-v, --verbose``
+     - Enable verbose output log (default: disabled)
+
+
+Sink Folder Usage
+"""""""""""""""""
+
+The sink folder feature allows automatic import of workout files by simply dropping them into a designated folder.
+
+**Setup:**
+
+1. Create the folder structure:
+
+   .. code-block:: bash
+
+      $ ftcli workouts sink_setup
+
+2. Create a folder for each user (username must match an existing FitTrackee user):
+
+   .. code-block:: bash
+
+      $ mkdir -p /path/to/uploads/sink/admin
+      $ mkdir -p /path/to/uploads/sink/admin/5  # Optional: for running (sport_id=5)
+
+3. Start the watcher:
+
+   .. code-block:: bash
+
+      $ ftcli workouts sink_watch --process-existing -v
+
+4. Drop workout files into the appropriate folder:
+
+   .. code-block:: bash
+
+      # Cycling workout (default sport)
+      $ cp morning_ride.fit /path/to/uploads/sink/admin/
+
+      # Running workout
+      $ cp evening_run.gpx /path/to/uploads/sink/admin/5/
+
+**Docker Deployment:**
+
+To run the sink folder watcher in Docker, uncomment the ``fittrackee-sink`` service in ``docker-compose.yml``.
+
+**Sport IDs:**
+
+Common sport IDs (check your database for the complete list):
+
+- 1 = Cycling (Sport)
+- 2 = Cycling (Transport)
+- 3 = Hiking
+- 4 = Mountain Biking
+- 5 = Running
+- 6 = Walking
