@@ -106,6 +106,33 @@ services:
 #      - internal_network
 #    restart: unless-stopped
 
+# Uncomment the following lines for sink folder auto-import feature
+# This watches UPLOAD_DIR/sink/{username}/ for workout files and imports them automatically
+# Create user folders: mkdir -p ./data/uploads/sink/{username}
+# Optionally create sport subfolders: mkdir -p ./data/uploads/sink/{username}/{sport_id}
+#  fittrackee-sink:
+#    container_name: fittrackee-sink
+#    env_file:
+#      - .env
+## Image from Docker Hub
+#    image: fittrackee/fittrackee:v1.0.3
+## Uncomment following line to build image instead of using pre-built image
+##    build: .
+#    volumes:
+#      - ${HOST_UPLOAD_DIR:-./data/uploads}:/usr/src/app/uploads
+#      - ${HOST_LOG_DIR:-./data/logs}:/usr/src/app/logs
+#      - ${HOST_STATICMAP_CACHE_DIR:-./data/staticmap_cache}:/usr/src/app/.staticmap_cache
+#    post_start:
+#      - command: chown -R fittrackee:fittrackee /usr/src/app/uploads /usr/src/app/logs /usr/src/app/.staticmap_cache
+#        user: root
+#    command: "ftcli workouts sink_watch --process-existing -v"
+#    depends_on:
+#      fittrackee:
+#        condition: service_healthy
+#    networks:
+#      - internal_network
+#    restart: unless-stopped
+
 networks:
   external_network:
   internal_network:

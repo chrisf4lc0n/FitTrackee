@@ -9,6 +9,7 @@ from fittrackee.cli.app import app
 from fittrackee.users.models import User
 from fittrackee.workouts.constants import WORKOUT_ALLOWED_EXTENSIONS
 from fittrackee.workouts.models import Sport
+from fittrackee.workouts.services.sink_folder_service import SinkFolderWatcher
 from fittrackee.workouts.services.workouts_from_file_refresh_service import (
     WorkoutsFromFileRefreshService,
 )
@@ -294,3 +295,96 @@ def refresh_workouts(
             sys.exit(1)
 
         logger.info("\nDone.")
+
+
+@workouts_cli.command("sink_watch")
+@click.option(
+    "--process-existing",
+    is_flag=True,
+    default=False,
+    help="Process existing files in the sink folder before starting the watcher.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    "verbose",
+    is_flag=True,
+    default=False,
+    help="Enable verbose output log (default: disabled).",
+)
+def sink_folder_watch(process_existing: bool, verbose: bool) -> None:
+    """
+    Watch the sink folder for new workout files and automatically import them.
+
+    The sink folder structure is:
+        UPLOAD_FOLDER/sink/{username}/file.fit - uses default sport (cycling)
+        UPLOAD_FOLDER/sink/{username}/{sport_id}/file.fit - uses specific sport
+
+    Processed files are moved to sink/processed/{username}/
+    Failed files are moved to sink/error/{username}/
+    """
+    with app.app_context():
+        if verbose:
+            sink_logger = logging.getLogger("fittrackee_sink_folder")
+            sink_logger.setLevel(logging.DEBUG)
+            sink_logger.addHandler(handler)
+
+        watcher = SinkFolderWatcher(app, logger)
+
+        if process_existing:
+            logger.info("Processing existing files in sink folder...")
+            count = watcher.process_existing_files()
+            logger.info(f"Processed {count} existing files.")
+
+        try:
+            watcher.run_forever()
+        except Exception as e:
+            logger.error(f"Error running sink folder watcher: {e}")
+            sys.exit(1)
+
+
+@workouts_cli.command("sink_process")
+@click.option(
+    "--verbose",
+    "-v",
+    "verbose",
+    is_flag=True,
+    default=False,
+    help="Enable verbose output log (default: disabled).",
+)
+def sink_folder_process(verbose: bool) -> None:
+    """
+    Process existing files in the sink folder (one-time).
+
+    This command processes all workout files currently in the sink folder
+    and then exits. Use this for batch processing without running the
+    continuous watcher.
+    """
+    with app.app_context():
+        if verbose:
+            sink_logger = logging.getLogger("fittrackee_sink_folder")
+            sink_logger.setLevel(logging.DEBUG)
+            sink_logger.addHandler(handler)
+
+        watcher = SinkFolderWatcher(app, logger)
+        watcher.setup_folders()
+
+        logger.info("Processing files in sink folder...")
+        count = watcher.process_existing_files()
+        logger.info(f"\nProcessed {count} files.")
+
+
+@workouts_cli.command("sink_setup")
+def sink_folder_setup() -> None:
+    """
+    Create the sink folder structure.
+
+    This creates the necessary folders for the sink feature:
+        UPLOAD_FOLDER/sink/
+        UPLOAD_FOLDER/sink/processed/
+        UPLOAD_FOLDER/sink/error/
+    """
+    with app.app_context():
+        watcher = SinkFolderWatcher(app, logger)
+        watcher.setup_folders()
+        logger.info("\nSink folder setup complete.")
